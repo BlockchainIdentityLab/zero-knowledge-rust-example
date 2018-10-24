@@ -3,7 +3,10 @@ name = "zk-tutorial"
 version = "0.1.0"
 authors = ["wip-a <wip.abramson@gmail.com>"]
 
+[lib]
+name = "zkpartition"
+path = "src/lib.rs"
+
 [dependencies]
 rand = "0.5.5"
 sha3 = "0.7.3"
-merkle = "1.0.0"
