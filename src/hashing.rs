@@ -8,6 +8,8 @@ pub fn generate_hash_string(value: String) -> String {
     to_hex_string(&result.as_slice())
 }
 
+
+
 pub fn to_hex_string(bytes: &[u8]) -> String {
     let strs: Vec<String> = bytes.iter()
                                 .map(|b| format!("{:02X}", b))

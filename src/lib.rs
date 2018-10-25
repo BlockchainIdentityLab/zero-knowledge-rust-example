@@ -3,72 +3,19 @@ use rand::{thread_rng, Rng};
 use std::error::Error;
 use std::cmp;
 
-pub struct PartictionProblemConfig {
-    boxes_to_sort: Vec<i32>,
-    side_assignment: Vec<i32>,
-}
-
-
-impl PartictionProblemConfig {
-    pub fn new(problem: &[i32], assignment: &[i32]) -> Result<PartictionProblemConfig, &'static str>  {
-        if problem.len() != assignment.len() {
-            return Err("Input vectors must be equal size to create witness");
-        }
-        Ok(PartictionProblemConfig {
-            boxes_to_sort: problem.to_vec(),
-            side_assignment: assignment.to_vec(),
-        })
-    }
-    // Given an instance of a partition problem via a list of numbers (the problem) and a list of
-    // (-1, 1), we say that the assignment satisfies the problem if their dot product is 0.
-    pub fn get_witness(self) -> Vec<i32> {
-
-        let mut sum: i32 = 0;
-        let mut mx = 0;
-        // thread_rng is often the most convenient source of randomness:
-        let mut rng = thread_rng();
-        let r: i32 = rng.gen_range(0,2);
-        // either 1 or -1
-        let side_obfuscator: i32 = 1 - (2 * r);
-
-        let mut witness: Vec<i32> = Vec::new();
-        witness.push(sum);
-
-        let iter = self.boxes_to_sort.iter().zip(self.side_assignment.iter());
-
-        for (i, (num, side)) in iter.enumerate() {
-            if *side != 1 && *side != -1 {
-                panic!("Assignment vector must be 1's or -1's");
-            }
-            println!("{}: ({}, {})", i, num, side);
-            sum += side * num * side_obfuscator;
-            witness.push(sum);
-            mx = cmp::max(mx, sum);
-
-        }
-        println!("witness {:?}", witness);
-        println!("max {}", mx);
-
-        let shift = rng.gen_range(0, mx+1);
-        let mut shifted_witness: Vec<i32> = Vec::new();
-        for x in witness {
-            shifted_witness.push(x + shift);
-        }
-        
-        shifted_witness
-        
-    }
-}
-
+pub mod prover;
 
 pub mod hashing;
 
 pub mod merkle;
 
+pub mod problem;
+
+pub mod verifier;
 
 #[cfg(test)]
 mod tests { 
-    use ::merkle;
+    use ::{merkle, prover, problem, verifier};
 
     #[test] 
     pub fn test_merkle_from_vec() {
@@ -83,24 +30,50 @@ mod tests {
         let data: Vec<i32> = vec![12, 0, 32, 12];
         let merkle_tree: merkle::ZkMerkleTree = merkle::ZkMerkleTree::from_vec(&data);
 
-        let (val, path) = merkle_tree.get_val_and_path(2);
-        println!("{:?}", path);
-        assert_eq!(val, 32);
+        let merkle_proof: merkle::MerkleProof = merkle_tree.get_merkle_proof(2);
+        println!("{:?}", merkle_proof.authentication_path);
+        assert_eq!(merkle_proof.value, 32);
 
     }
 
     #[test]
     pub fn verify_merkle_path() {
-        let data: Vec<i32> = vec![1, 0, 32, 12];
-        let merkle_tree: merkle::ZkMerkleTree = merkle::ZkMerkleTree::from_vec(&data);
+        let witness: Vec<i32> = vec![1, 0, 32, 12];
+        let merkle_tree: merkle::ZkMerkleTree = merkle::ZkMerkleTree::from_vec(&witness);
         println!("Data {:?}", merkle_tree.data);
         println!("Tree {:?}", merkle_tree.tree);
-        let (val, path) = merkle_tree.get_val_and_path(2);
-        println!("Path {:?}", &path);
+        let merkle_proof: merkle::MerkleProof = merkle_tree.get_merkle_proof(2);
+        println!("Path {:?}", &merkle_proof.authentication_path);
 
-        let in_tree = merkle::verify_merkle_path(merkle_tree.root, 2, data.len() as u32, val, &path);
+        let in_tree = merkle_proof.verify_proof(&merkle_tree.root, 2, witness.len() as u32);
 
         assert_eq!(in_tree, true);
+    }
 
+    #[test]
+    pub fn verify_true_proof() {
+        let problem: Vec<i32> = vec![1, 2, 3, 6, 6, 6, 12];
+        let assignment: Vec<i32> = vec![1, 1, 1, -1, -1, -1, 1];
+        let problem_config: problem::PartictionProblem = problem::PartictionProblem::new(&problem, &assignment).unwrap();
+        let prover: prover::Prover = prover::Prover::new(problem_config);
+        let proof: Vec<prover::Proof> = prover.get_proof(100);
+        println!("Proof \n {:?}", proof);
+
+        let is_proof_valid = verifier::verify_proof(problem, proof);
+
+        assert!(is_proof_valid);
+    }
+
+    #[test]
+    pub fn verify_false_proof() {
+        let problem: Vec<i32> = vec![1, 2, 3, 6, 6, 6, 12];
+        let assignment: Vec<i32> = vec![1, -1, -1, -1, -1, -1, 1];
+        let problem_config: problem::PartictionProblem = problem::PartictionProblem::new(&problem, &assignment).unwrap();
+        let prover: prover::Prover = prover::Prover::new(problem_config);
+        let proof: Vec<prover::Proof> = prover.get_proof(100);
+        // println!("Proof \n {:?}", proof);
+
+        let is_proof_valid = verifier::verify_proof(problem, proof);
+        assert!(!is_proof_valid);
     }
 }
