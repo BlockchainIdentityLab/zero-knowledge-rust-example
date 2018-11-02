@@ -7,7 +7,7 @@ use prover;
 
 // Any verifier can take the proofs provided by the prover and verify correctness
 // Ie that the prover knows the solution to the partition problem for the given instance
-pub fn verify_proof(problem: Vec<i32>, proofs: Vec<prover::Proof>) -> bool {
+pub fn verify_proof(problem: Vec<i64>, proofs: Vec<prover::Proof>) -> bool {
     let mut proof_checks_out: bool = true;
     let mut randomness_seed: Vec<String> = problem.iter()
                                             .map(|x| x.to_string())
@@ -19,29 +19,22 @@ pub fn verify_proof(problem: Vec<i32>, proofs: Vec<prover::Proof>) -> bool {
         let seed = prover::generate_seed(&randomness_seed);
         let mut rng: StdRng = SeedableRng::from_seed(seed);
 
-        let query_idx = rng.gen_range(0, problem.len() + 1);
+        let query_idx = rng.gen_range(0, problem.len());
         let merkle_root: String = (&proof.root).to_string();
 
         
         proof_checks_out = proof_checks_out && query_idx == proof.query_idx;
 
         // Test witness properties
-        if query_idx < problem.len() {
-            let abs_val = (proof.merkle_proof_1.value - proof.merkle_proof_2.value).abs();
-            let abs_problem = problem[query_idx].abs();
+        let abs_val = (proof.merkle_proof_1.value - proof.merkle_proof_2.value).abs();
+        let abs_problem = problem[query_idx].abs();
 
-            // Check |problem[i]|=|witness[i+1]−witness[i]|
-            proof_checks_out = proof_checks_out && (proof.merkle_proof_2.value - proof.merkle_proof_1.value).abs() == problem[query_idx].abs();
-        }
-        else {
-            // Checks witness[0] == witness[n] for a witness vector 1..n
-            proof_checks_out = proof_checks_out && proof.merkle_proof_1.value == proof.merkle_proof_2.value;
-        }
+        // Check |problem[i]|=|witness[i+1 % problem.len()]−witness[i]|
+        proof_checks_out = proof_checks_out && (proof.merkle_proof_2.value - proof.merkle_proof_1.value).abs() == problem[query_idx].abs(); 
 
         // Authenticate paths in merkle trees to check commitments to witness match witness values
-        // note it is (problem.len() + 1) as witness is 1 bigger than the problem size -> See get_witness
-        proof_checks_out = proof_checks_out && proof.merkle_proof_1.verify_proof(&merkle_root, proof.query_idx as u32, (problem.len() + 1) as u32);
-        proof_checks_out = proof_checks_out && proof.merkle_proof_2.verify_proof(&merkle_root, ((proof.query_idx + 1) % (problem.len() + 1)) as u32, (problem.len() + 1) as u32); 
+        proof_checks_out = proof_checks_out && proof.merkle_proof_1.verify_proof(&merkle_root, proof.query_idx as u32, problem.len() as u32);
+        proof_checks_out = proof_checks_out && proof.merkle_proof_2.verify_proof(&merkle_root, ((proof.query_idx + 1) % problem.len()) as u32, problem.len() as u32); 
 
         // add string representation to of proof to randomness seed
         randomness_seed.push(format!("{:?}", &proof));

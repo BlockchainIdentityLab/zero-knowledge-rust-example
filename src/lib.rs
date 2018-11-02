@@ -19,7 +19,7 @@ mod tests {
 
     #[test] 
     pub fn test_merkle_from_vec() {
-        let data: Vec<i32> = vec![-12, 0, 22, 12,2,4];
+        let data: Vec<i64> = vec![-12, 0, 22, 12,2,4];
         let merkle: merkle::ZkMerkleTree = merkle::ZkMerkleTree::from_vec(&data);
         assert_eq!(merkle.tree.len(), merkle.data.len() *2);
         assert_eq!(merkle.tree[0], String::from(""));
@@ -27,7 +27,7 @@ mod tests {
 
     #[test]
     pub fn test_get_val_and_path() {
-        let data: Vec<i32> = vec![12, 0, 32, 12];
+        let data: Vec<i64> = vec![12, 0, 32, 12];
         let merkle_tree: merkle::ZkMerkleTree = merkle::ZkMerkleTree::from_vec(&data);
 
         let merkle_proof: merkle::MerkleProof = merkle_tree.get_merkle_proof(2);
@@ -38,7 +38,7 @@ mod tests {
 
     #[test]
     pub fn verify_merkle_path() {
-        let witness: Vec<i32> = vec![1, 0, 32, 12];
+        let witness: Vec<i64> = vec![1, 0, 32, 12];
         let merkle_tree: merkle::ZkMerkleTree = merkle::ZkMerkleTree::from_vec(&witness);
         println!("Data {:?}", merkle_tree.data);
         println!("Tree {:?}", merkle_tree.tree);
@@ -52,8 +52,8 @@ mod tests {
 
     #[test]
     pub fn verify_true_proof() {
-        let problem: Vec<i32> = vec![1, 2, 3, 6, 6, 6, 12];
-        let assignment: Vec<i32> = vec![1, 1, 1, -1, -1, -1, 1];
+        let problem: Vec<i64> = vec![1, 2, 3, 6, 6, 6, 12];
+        let assignment: Vec<i64> = vec![1, 1, 1, -1, -1, -1, 1];
         let problem_config: problem::PartictionProblem = problem::PartictionProblem::new(&problem, &assignment).unwrap();
         let prover: prover::Prover = prover::Prover::new(problem_config);
         let proof: Vec<prover::Proof> = prover.get_proof(100);
@@ -66,8 +66,8 @@ mod tests {
 
     #[test]
     pub fn verify_false_proof() {
-        let problem: Vec<i32> = vec![1, 2, 3, 6, 6, 6, 12];
-        let assignment: Vec<i32> = vec![1, -1, -1, -1, -1, -1, 1];
+        let problem: Vec<i64> = vec![1, 2, 3, 6, 6, 6, 12];
+        let assignment: Vec<i64> = vec![1, -1, -1, -1, -1, -1, 1];
         let problem_config: problem::PartictionProblem = problem::PartictionProblem::new(&problem, &assignment).unwrap();
         let prover: prover::Prover = prover::Prover::new(problem_config);
         let proof: Vec<prover::Proof> = prover.get_proof(100);

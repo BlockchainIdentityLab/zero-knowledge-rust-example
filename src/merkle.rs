@@ -11,7 +11,7 @@ use hashing;
 // A Zero Knowledge Merkle tree implementation using SHA256
 pub struct ZkMerkleTree {
     pub root: String,
-    pub data: Vec<i32>,
+    pub data: Vec<i64>,
     // a vector of hashed strings making up the merkle tree where index 1 is the root and i*2 and i*2+1 are its children
     pub tree: Vec<String>
 }
@@ -19,7 +19,7 @@ pub struct ZkMerkleTree {
 impl ZkMerkleTree {
     // creates a zero knowledge merkle tree from a vector
     // could extend to use Generics
-    pub fn from_vec(data: &[i32]) -> ZkMerkleTree {
+    pub fn from_vec(data: &[i64]) -> ZkMerkleTree {
 
         // resize data array to make full binary tree leaves ie next power of 2
         let length: f64 = data.len() as f64;
@@ -27,15 +27,15 @@ impl ZkMerkleTree {
         let mut base_data = data.to_vec();
         base_data.resize(next_pow_2 as usize, 0);
 
-        // create vector of random i32 the same size as the leaf nodes
-        let mut random_list: Vec<i32> = Vec::new();
+        // create vector of random i64 the same size as the leaf nodes
+        let mut random_list: Vec<i64> = Vec::new();
         for i in 0..next_pow_2 {
-            let random: i32 = rand::random();
+            let random: i64 = rand::random();
             random_list.push(random);
         }
 
         // Intertwine with randomness with data to obtain zero knowledge.
-        let mut leaf_node_data: Vec<i32> = Vec::new();
+        let mut leaf_node_data: Vec<i64> = Vec::new();
         for (data, random) in base_data.iter().zip(random_list.iter()) {
             leaf_node_data.push(*data);
             leaf_node_data.push(*random);
@@ -104,7 +104,7 @@ impl ZkMerkleTree {
 
 #[derive(Debug)]
 pub struct MerkleProof {
-    pub value: i32,
+    pub value: i64,
     pub authentication_path: Vec<String>
 }
 

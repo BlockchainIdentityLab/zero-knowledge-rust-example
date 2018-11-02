@@ -47,18 +47,18 @@ impl Prover {
 
 
         for mut i in 0..num_queries {
-            let witness: Vec<i32> = self.get_witness();
+            let witness: Vec<i64> = self.get_witness();
             let tree: merkle::ZkMerkleTree = merkle::ZkMerkleTree::from_vec(&witness);
 
             let seed = generate_seed(&randomness_seed);
             let mut rng: StdRng = SeedableRng::from_seed(seed);
-            let query_idx = rng.gen_range(0, self.problem.partition_sizes.len() + 1);
+            let query_idx = rng.gen_range(0, self.problem.partition_sizes.len());
 
             let current_proof: Proof = Proof {
                 root: String::from(tree.get_root()),
                 query_idx,
                 merkle_proof_1: tree.get_merkle_proof(query_idx),
-                merkle_proof_2: tree.get_merkle_proof((query_idx + 1) % witness.len())
+                merkle_proof_2: tree.get_merkle_proof((query_idx + 1) % self.problem.partition_sizes.len())
             };
 
             randomness_seed.push(format!("{:?}", &current_proof));
@@ -71,40 +71,37 @@ impl Prover {
     // Given an instance of a partition problem via a list of numbers (the problem) and a list of
     // (-1, 1), we say that the assignment satisfies the problem if their dot product is 0.
     // The witness for the partition problem uses the fact the |l[i]|=|p[i+1]−p[i]| or if 
-    pub fn get_witness(&self) -> Vec<i32> {
+    pub fn get_witness(&self) -> Vec<i64> {
 
-        let mut sum: i32 = 0;
-        let mut mx = 0;
-
+        let mut sum: i64 = 0;
 
         // Witness starts with 0
-        let mut witness: Vec<i32> = Vec::new();
+        let mut witness: Vec<i64> = Vec::new();
         witness.push(sum);
 
         // randomly generate a either 1 or -1 for the side_obfuscator
         let mut rng = thread_rng();
-        let r: i32 = rng.gen_range(0,2);
-        let side_obfuscator: i32 = 1 - (2 * r);
+        let r: i64 = rng.gen_range(0,2);
+        let side_obfuscator: i64 = 1 - (2 * r);
 
 
         let iter = self.problem.partition_sizes.iter().zip(self.problem.side_assignment.iter());
 
-
+        // iterate through partition sizes and side_assignment
+        // push sum of side * partition_size * random obsucator (1 or -1)
         for (i, (num, side)) in iter.enumerate() {
-            if *side != 1 && *side != -1 {
-                panic!("Assignment vector must be 1's or -1's");
-            }
-            sum += side * num * side_obfuscator;
-            witness.push(sum);
-            mx = cmp::max(mx, sum);
+            if (i != self.problem.partition_sizes.len() - 1) {
 
+                sum += side * num * side_obfuscator;
+                witness.push(sum);
+            } 
         }
 
         // Ensure randomness of witness by shifting each value by a random shift value
-        let shift = rng.gen_range(0, mx+1);
-        let mut shifted_witness: Vec<i32> = Vec::new();
+        let shift = rng.gen_range(0, 2_u32.pow(30));
+        let mut shifted_witness: Vec<i64> = Vec::new();
         for x in witness {
-            shifted_witness.push(x + shift);
+            shifted_witness.push(x + shift as i64);
         }
         
         println!("Creating new witness for \n Partition Sizes: {:?} \n Assignment : {:?}", &self.problem.partition_sizes, &self.problem.side_assignment);

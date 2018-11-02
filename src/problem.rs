@@ -1,11 +1,11 @@
 pub struct PartictionProblem {
-    pub partition_sizes: Vec<i32>,
-    pub side_assignment: Vec<i32>,
+    pub partition_sizes: Vec<i64>,
+    pub side_assignment: Vec<i64>,
 }
 
 
 impl PartictionProblem {
-    pub fn new(partition_sizes: &[i32], side_assignment: &[i32]) -> Result<PartictionProblem, &'static str>  {
+    pub fn new(partition_sizes: &[i64], side_assignment: &[i64]) -> Result<PartictionProblem, &'static str>  {
         if partition_sizes.len() != side_assignment.len() {
             return Err("Input vectors must be equal size to create witness");
         }
